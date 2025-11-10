@@ -44,5 +44,7 @@ downloads/
 *.wav
 *.mp3
 *.mp4
-*.m4a 
+*.m4a
 suno-downloader.txt
+config.json
+suno_downloader.log

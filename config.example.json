@@ -1,0 +1,23 @@
+{
+  "credentials": {
+    "username": "your-email@example.com",
+    "password": "your-password"
+  },
+  "download": {
+    "output_dir": "downloads",
+    "formats": ["mp3", "mp4", "wav"],
+    "wait_for_generation": true,
+    "max_wait_time": 300
+  },
+  "browser": {
+    "headless": false
+  },
+  "filters": {
+    "title": "",
+    "status": "",
+    "has_video": null,
+    "has_audio": null,
+    "min_date": "",
+    "max_date": ""
+  }
+}
