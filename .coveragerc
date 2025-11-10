@@ -17,3 +17,13 @@ exclude_lines =
     if __name__ == .__main__.:
     if TYPE_CHECKING:
     @abstractmethod
+precision = 2
+show_missing = True
+skip_covered = False
+fail_under = 95
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

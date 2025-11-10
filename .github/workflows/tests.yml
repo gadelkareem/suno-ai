@@ -38,7 +38,39 @@ jobs:
 
     - name: Run tests with pytest
       run: |
-        pytest --cov=automated_downloader --cov-report=xml --cov-report=term-missing
+        pytest --cov=automated_downloader --cov-report=xml --cov-report=html --cov-report=term-missing --cov-fail-under=95
+
+    - name: Check coverage threshold
+      run: |
+        coverage report --fail-under=95
+      if: always()
+
+    - name: Generate coverage badge
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      run: |
+        pip install genbadge[coverage]
+        genbadge coverage -i coverage.xml -o coverage-badge.svg
+
+    - name: Upload coverage badge
+      uses: actions/upload-artifact@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        name: coverage-badge
+        path: coverage-badge.svg
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+    - name: Coverage summary comment
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' && github.event_name == 'pull_request'
+      run: |
+        echo "## Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

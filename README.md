@@ -220,13 +220,13 @@ python3 <script-name>.py
 
 ### Running Tests
 
-The project has comprehensive test coverage (99%). To run tests:
+The project has comprehensive test coverage (99%) with a **minimum threshold of 95%** enforced in CI/CD. To run tests:
 
 ```bash
 # Install dev dependencies
 pip install -r requirements-dev.txt
 
-# Run tests
+# Run tests (automatically checks 95% coverage threshold)
 pytest
 
 # Run with coverage report
@@ -234,7 +234,16 @@ pytest --cov=automated_downloader --cov-report=html
 
 # View coverage report
 open htmlcov/index.html
+
+# Check coverage threshold explicitly
+coverage report --fail-under=95
 ```
+
+**Coverage Requirements:**
+- Minimum coverage: 95%
+- Current coverage: 99%
+- Branch coverage: Required
+- CI/CD enforces threshold on all platforms
 
 ### Code Quality
 
