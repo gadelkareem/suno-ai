@@ -4,34 +4,33 @@ Automated Suno AI Song Downloader
 Fully automated script to login, browse, and download songs from Suno AI
 """
 
+import argparse
+import json
+import logging
 import os
 import sys
 import time
-import json
-import argparse
-import logging
-from pathlib import Path
-from typing import List, Dict, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional
 
 import requests
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException, NoSuchElementException
-
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler('suno_downloader.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
+        logging.FileHandler("suno_downloader.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -43,8 +42,14 @@ class SunoDownloader:
     LOGIN_URL = "https://suno.com/login"
     LIBRARY_URL = "https://suno.com/songs"
 
-    def __init__(self, username: str, password: str, download_dir: str = "downloads",
-                 headless: bool = False, formats: List[str] = None):
+    def __init__(
+        self,
+        username: str,
+        password: str,
+        download_dir: str = "downloads",
+        headless: bool = False,
+        formats: List[str] = None,
+    ):
         """
         Initialize the downloader
 
@@ -59,11 +64,13 @@ class SunoDownloader:
         self.password = password
         self.download_dir = Path(download_dir)
         self.download_dir.mkdir(exist_ok=True)
-        self.formats = formats or ['mp3', 'mp4', 'wav']
+        self.formats = formats or ["mp3", "mp4", "wav"]
         self.driver = None
         self.headless = headless
 
-        logger.info(f"Initialized downloader - Download dir: {self.download_dir}, Formats: {self.formats}")
+        logger.info(
+            f"Initialized downloader - Download dir: {self.download_dir}, Formats: {self.formats}"
+        )
 
     def setup_driver(self):
         """Setup Chrome WebDriver with appropriate options"""
@@ -73,25 +80,27 @@ class SunoDownloader:
 
         # Basic options
         if self.headless:
-            chrome_options.add_argument('--headless=new')
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-blink-features=AutomationControlled')
-        chrome_options.add_argument('--start-maximized')
+            chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--no-sandbox")
+        chrome_options.add_argument("--disable-dev-shm-usage")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument("--start-maximized")
 
         # Disable automation flags
         chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option('useAutomationExtension', False)
+        chrome_options.add_experimental_option("useAutomationExtension", False)
 
         # Set user agent
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        chrome_options.add_argument(
+            "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
 
         # Set download preferences
         prefs = {
             "download.default_directory": str(self.download_dir.absolute()),
             "download.prompt_for_download": False,
             "download.directory_upgrade": True,
-            "safebrowsing.enabled": True
+            "safebrowsing.enabled": True,
         }
         chrome_options.add_experimental_option("prefs", prefs)
 
@@ -118,7 +127,7 @@ class SunoDownloader:
                 "input[placeholder*='email' i]",
                 "input[placeholder*='Email' i]",
                 "#email",
-                "#username"
+                "#username",
             ]
 
             email_input = None
@@ -145,7 +154,7 @@ class SunoDownloader:
             password_selectors = [
                 "input[type='password']",
                 "input[name='password']",
-                "#password"
+                "#password",
             ]
 
             password_input = None
@@ -171,7 +180,7 @@ class SunoDownloader:
                 "button[type='submit']",
                 "button:contains('Log in')",
                 "button:contains('Sign in')",
-                "input[type='submit']"
+                "input[type='submit']",
             ]
 
             login_button = None
@@ -185,7 +194,10 @@ class SunoDownloader:
             if not login_button:
                 # Try XPath as fallback
                 try:
-                    login_button = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Log') or contains(text(), 'Sign')]")
+                    login_button = self.driver.find_element(
+                        By.XPATH,
+                        "//button[contains(text(), 'Log') or contains(text(), 'Sign')]",
+                    )
                 except NoSuchElementException:
                     logger.error("Could not find login button")
                     raise Exception("Login button not found")
@@ -233,7 +245,9 @@ class SunoDownloader:
 
         while scroll_attempts < max_attempts:
             # Scroll down
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            self.driver.execute_script(
+                "window.scrollTo(0, document.body.scrollHeight);"
+            )
             time.sleep(2)
 
             # Calculate new scroll height
@@ -317,44 +331,56 @@ class SunoDownloader:
         filtered = songs
 
         # Filter by title
-        if criteria.get('title'):
-            title_filter = criteria['title'].lower()
-            filtered = [s for s in filtered if title_filter in s['title'].lower()]
-            logger.info(f"Filtered by title '{criteria['title']}': {len(filtered)} songs")
+        if criteria.get("title"):
+            title_filter = criteria["title"].lower()
+            filtered = [s for s in filtered if title_filter in s["title"].lower()]
+            logger.info(
+                f"Filtered by title '{criteria['title']}': {len(filtered)} songs"
+            )
 
         # Filter by date range
-        if criteria.get('min_date'):
-            min_date = datetime.fromisoformat(criteria['min_date'])
-            filtered = [s for s in filtered if s.get('created_at') and
-                       datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')) >= min_date]
+        if criteria.get("min_date"):
+            min_date = datetime.fromisoformat(criteria["min_date"])
+            filtered = [
+                s
+                for s in filtered
+                if s.get("created_at")
+                and datetime.fromisoformat(s["created_at"].replace("Z", "+00:00"))
+                >= min_date
+            ]
             logger.info(f"Filtered by min_date: {len(filtered)} songs")
 
-        if criteria.get('max_date'):
-            max_date = datetime.fromisoformat(criteria['max_date'])
-            filtered = [s for s in filtered if s.get('created_at') and
-                       datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')) <= max_date]
+        if criteria.get("max_date"):
+            max_date = datetime.fromisoformat(criteria["max_date"])
+            filtered = [
+                s
+                for s in filtered
+                if s.get("created_at")
+                and datetime.fromisoformat(s["created_at"].replace("Z", "+00:00"))
+                <= max_date
+            ]
             logger.info(f"Filtered by max_date: {len(filtered)} songs")
 
         # Filter by has_video
-        if criteria.get('has_video') is not None:
-            if criteria['has_video']:
-                filtered = [s for s in filtered if s.get('video_url')]
+        if criteria.get("has_video") is not None:
+            if criteria["has_video"]:
+                filtered = [s for s in filtered if s.get("video_url")]
             else:
-                filtered = [s for s in filtered if not s.get('video_url')]
+                filtered = [s for s in filtered if not s.get("video_url")]
             logger.info(f"Filtered by has_video: {len(filtered)} songs")
 
         # Filter by has_audio
-        if criteria.get('has_audio') is not None:
-            if criteria['has_audio']:
-                filtered = [s for s in filtered if s.get('audio_url')]
+        if criteria.get("has_audio") is not None:
+            if criteria["has_audio"]:
+                filtered = [s for s in filtered if s.get("audio_url")]
             else:
-                filtered = [s for s in filtered if not s.get('audio_url')]
+                filtered = [s for s in filtered if not s.get("audio_url")]
             logger.info(f"Filtered by has_audio: {len(filtered)} songs")
 
         # Filter by status
-        if criteria.get('status'):
-            status = criteria['status'].lower()
-            filtered = [s for s in filtered if s.get('status', '').lower() == status]
+        if criteria.get("status"):
+            status = criteria["status"].lower()
+            filtered = [s for s in filtered if s.get("status", "").lower() == status]
             logger.info(f"Filtered by status '{status}': {len(filtered)} songs")
 
         return filtered
@@ -370,12 +396,14 @@ class SunoDownloader:
         Returns:
             Updated song dictionary
         """
-        song_id = song['id']
-        logger.info(f"Checking generation status for song: {song['title']} (ID: {song_id})")
+        song_id = song["id"]
+        logger.info(
+            f"Checking generation status for song: {song['title']} (ID: {song_id})"
+        )
 
         # Check if generation is complete
-        status = song.get('status', '').lower()
-        if status == 'complete':
+        status = song.get("status", "").lower()
+        if status == "complete":
             logger.info(f"Song already complete: {song['title']}")
             return song
 
@@ -383,7 +411,9 @@ class SunoDownloader:
         check_interval = 10  # Check every 10 seconds
 
         while time.time() - start_time < max_wait_time:
-            logger.info(f"Waiting for generation... ({int(time.time() - start_time)}s elapsed)")
+            logger.info(
+                f"Waiting for generation... ({int(time.time() - start_time)}s elapsed)"
+            )
             time.sleep(check_interval)
 
             # Refresh page to get updated data
@@ -394,11 +424,11 @@ class SunoDownloader:
             songs = self.extract_songs_data()
 
             # Find our song
-            updated_song = next((s for s in songs if s['id'] == song_id), None)
+            updated_song = next((s for s in songs if s["id"] == song_id), None)
 
             if updated_song:
-                status = updated_song.get('status', '').lower()
-                if status == 'complete':
+                status = updated_song.get("status", "").lower()
+                if status == "complete":
                     logger.info(f"Generation complete for: {updated_song['title']}")
                     return updated_song
                 else:
@@ -436,17 +466,19 @@ class SunoDownloader:
             response = requests.get(url, stream=True, timeout=30)
             response.raise_for_status()
 
-            total_size = int(response.headers.get('content-length', 0))
+            total_size = int(response.headers.get("content-length", 0))
             downloaded = 0
 
-            with open(filepath, 'wb') as f:
+            with open(filepath, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
                         downloaded += len(chunk)
 
                         # Log progress for large files
-                        if total_size > 0 and downloaded % (1024 * 1024) == 0:  # Every MB
+                        if (
+                            total_size > 0 and downloaded % (1024 * 1024) == 0
+                        ):  # Every MB
                             progress = (downloaded / total_size) * 100
                             logger.info(f"Progress: {progress:.1f}%")
 
@@ -467,11 +499,11 @@ class SunoDownloader:
         """
         # This is a placeholder - the actual WAV URL might need to be fetched differently
         # Some sites provide WAV through a different endpoint
-        audio_url = song.get('audio_url', '')
+        audio_url = song.get("audio_url", "")
 
         if audio_url:
             # Try replacing extension (might not always work)
-            wav_url = audio_url.replace('.mp3', '.wav')
+            wav_url = audio_url.replace(".mp3", ".wav")
             # Or check if there's a specific WAV endpoint
             return wav_url
 
@@ -495,32 +527,40 @@ class SunoDownloader:
         results = {}
 
         # Wait for generation if needed
-        if wait_for_gen and song.get('status', '').lower() != 'complete':
+        if wait_for_gen and song.get("status", "").lower() != "complete":
             song = self.wait_for_generation(song)
 
         # Sanitize filename
-        safe_title = "".join(c for c in song['title'] if c.isalnum() or c in (' ', '-', '_')).strip()
-        safe_title = safe_title or song['id']
+        safe_title = "".join(
+            c for c in song["title"] if c.isalnum() or c in (" ", "-", "_")
+        ).strip()
+        safe_title = safe_title or song["id"]
 
         # Download MP3
-        if 'mp3' in self.formats:
+        if "mp3" in self.formats:
             filename = f"{safe_title}.mp3"
-            results['mp3'] = self.download_file(song.get('audio_url', ''), filename, 'mp3')
+            results["mp3"] = self.download_file(
+                song.get("audio_url", ""), filename, "mp3"
+            )
 
         # Download MP4
-        if 'mp4' in self.formats:
+        if "mp4" in self.formats:
             filename = f"{safe_title}.mp4"
-            results['mp4'] = self.download_file(song.get('video_url', ''), filename, 'mp4')
+            results["mp4"] = self.download_file(
+                song.get("video_url", ""), filename, "mp4"
+            )
 
         # Download WAV
-        if 'wav' in self.formats:
+        if "wav" in self.formats:
             filename = f"{safe_title}.wav"
             wav_url = self.get_wav_url(song)
-            results['wav'] = self.download_file(wav_url, filename, 'wav')
+            results["wav"] = self.download_file(wav_url, filename, "wav")
 
         return results
 
-    def run(self, filter_criteria: Optional[Dict] = None, wait_for_generation: bool = True):
+    def run(
+        self, filter_criteria: Optional[Dict] = None, wait_for_generation: bool = True
+    ):
         """
         Main execution method
 
@@ -591,7 +631,7 @@ class SunoDownloader:
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description='Automated Suno AI Song Downloader',
+        description="Automated Suno AI Song Downloader",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -615,44 +655,57 @@ Examples:
 
   # Don't wait for generation (skip incomplete songs)
   python automated_downloader.py -u user@example.com -p password --no-wait
-        """
+        """,
     )
 
     # Config file
-    parser.add_argument('-c', '--config',
-                       help='Path to config JSON file')
+    parser.add_argument("-c", "--config", help="Path to config JSON file")
 
     # Required arguments (can be provided via config)
-    parser.add_argument('-u', '--username',
-                       help='Suno AI username/email')
-    parser.add_argument('-p', '--password',
-                       help='Suno AI password')
+    parser.add_argument("-u", "--username", help="Suno AI username/email")
+    parser.add_argument("-p", "--password", help="Suno AI password")
 
     # Optional arguments
-    parser.add_argument('-o', '--output', default='downloads',
-                       help='Output directory for downloads (default: downloads)')
-    parser.add_argument('-f', '--formats', nargs='+',
-                       choices=['mp3', 'mp4', 'wav'],
-                       default=['mp3', 'mp4', 'wav'],
-                       help='Formats to download (default: all)')
-    parser.add_argument('--headless', action='store_true',
-                       help='Run browser in headless mode (no UI)')
-    parser.add_argument('--no-wait', action='store_true',
-                       help='Don\'t wait for song generation to complete')
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="downloads",
+        help="Output directory for downloads (default: downloads)",
+    )
+    parser.add_argument(
+        "-f",
+        "--formats",
+        nargs="+",
+        choices=["mp3", "mp4", "wav"],
+        default=["mp3", "mp4", "wav"],
+        help="Formats to download (default: all)",
+    )
+    parser.add_argument(
+        "--headless", action="store_true", help="Run browser in headless mode (no UI)"
+    )
+    parser.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="Don't wait for song generation to complete",
+    )
 
     # Filter arguments
-    parser.add_argument('--filter-title',
-                       help='Filter songs by title (contains)')
-    parser.add_argument('--filter-status',
-                       help='Filter by status (e.g., complete, processing)')
-    parser.add_argument('--has-video', action='store_true',
-                       help='Only download songs with video')
-    parser.add_argument('--has-audio', action='store_true',
-                       help='Only download songs with audio')
-    parser.add_argument('--min-date',
-                       help='Minimum creation date (ISO format: YYYY-MM-DD)')
-    parser.add_argument('--max-date',
-                       help='Maximum creation date (ISO format: YYYY-MM-DD)')
+    parser.add_argument("--filter-title", help="Filter songs by title (contains)")
+    parser.add_argument(
+        "--filter-status", help="Filter by status (e.g., complete, processing)"
+    )
+    parser.add_argument(
+        "--has-video", action="store_true", help="Only download songs with video"
+    )
+    parser.add_argument(
+        "--has-audio", action="store_true", help="Only download songs with audio"
+    )
+    parser.add_argument(
+        "--min-date", help="Minimum creation date (ISO format: YYYY-MM-DD)"
+    )
+    parser.add_argument(
+        "--max-date", help="Maximum creation date (ISO format: YYYY-MM-DD)"
+    )
 
     args = parser.parse_args()
 
@@ -660,7 +713,7 @@ Examples:
     config = {}
     if args.config:
         try:
-            with open(args.config, 'r') as f:
+            with open(args.config, "r") as f:
                 config = json.load(f)
             logger.info(f"Loaded configuration from {args.config}")
         except Exception as e:
@@ -668,8 +721,8 @@ Examples:
             sys.exit(1)
 
     # Get credentials (command line overrides config)
-    username = args.username or config.get('credentials', {}).get('username')
-    password = args.password or config.get('credentials', {}).get('password')
+    username = args.username or config.get("credentials", {}).get("username")
+    password = args.password or config.get("credentials", {}).get("password")
 
     if not username or not password:
         logger.error("Username and password are required (via -u/-p or config file)")
@@ -677,31 +730,41 @@ Examples:
         sys.exit(1)
 
     # Get download settings (command line overrides config)
-    download_config = config.get('download', {})
-    output_dir = args.output if args.output != 'downloads' else download_config.get('output_dir', 'downloads')
-    formats = args.formats if args.formats != ['mp3', 'mp4', 'wav'] else download_config.get('formats', ['mp3', 'mp4', 'wav'])
-    wait_for_gen = download_config.get('wait_for_generation', True) if not args.no_wait else False
+    download_config = config.get("download", {})
+    output_dir = (
+        args.output
+        if args.output != "downloads"
+        else download_config.get("output_dir", "downloads")
+    )
+    formats = (
+        args.formats
+        if args.formats != ["mp3", "mp4", "wav"]
+        else download_config.get("formats", ["mp3", "mp4", "wav"])
+    )
+    wait_for_gen = (
+        download_config.get("wait_for_generation", True) if not args.no_wait else False
+    )
 
     # Get browser settings
-    browser_config = config.get('browser', {})
-    headless = args.headless or browser_config.get('headless', False)
+    browser_config = config.get("browser", {})
+    headless = args.headless or browser_config.get("headless", False)
 
     # Build filter criteria (command line overrides config)
-    config_filters = config.get('filters', {})
+    config_filters = config.get("filters", {})
     filter_criteria = {}
 
-    if args.filter_title or config_filters.get('title'):
-        filter_criteria['title'] = args.filter_title or config_filters.get('title')
-    if args.filter_status or config_filters.get('status'):
-        filter_criteria['status'] = args.filter_status or config_filters.get('status')
-    if args.has_video or config_filters.get('has_video'):
-        filter_criteria['has_video'] = True
-    if args.has_audio or config_filters.get('has_audio'):
-        filter_criteria['has_audio'] = True
-    if args.min_date or config_filters.get('min_date'):
-        filter_criteria['min_date'] = args.min_date or config_filters.get('min_date')
-    if args.max_date or config_filters.get('max_date'):
-        filter_criteria['max_date'] = args.max_date or config_filters.get('max_date')
+    if args.filter_title or config_filters.get("title"):
+        filter_criteria["title"] = args.filter_title or config_filters.get("title")
+    if args.filter_status or config_filters.get("status"):
+        filter_criteria["status"] = args.filter_status or config_filters.get("status")
+    if args.has_video or config_filters.get("has_video"):
+        filter_criteria["has_video"] = True
+    if args.has_audio or config_filters.get("has_audio"):
+        filter_criteria["has_audio"] = True
+    if args.min_date or config_filters.get("min_date"):
+        filter_criteria["min_date"] = args.min_date or config_filters.get("min_date")
+    if args.max_date or config_filters.get("max_date"):
+        filter_criteria["max_date"] = args.max_date or config_filters.get("max_date")
 
     # Create downloader and run
     downloader = SunoDownloader(
@@ -709,14 +772,14 @@ Examples:
         password=password,
         download_dir=output_dir,
         headless=headless,
-        formats=formats
+        formats=formats,
     )
 
     downloader.run(
         filter_criteria=filter_criteria if filter_criteria else None,
-        wait_for_generation=wait_for_gen
+        wait_for_generation=wait_for_gen,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
