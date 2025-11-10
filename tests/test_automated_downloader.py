@@ -148,6 +148,121 @@ class TestLogin:
 
         assert result is False
 
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_login_email_input_not_found(self, mock_sleep, mock_chrome):
+        """Test login when email input field cannot be found"""
+        from selenium.common.exceptions import TimeoutException
+
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+
+        # Mock wait to raise TimeoutException for all selectors
+        mock_wait = MagicMock()
+        mock_wait.until.side_effect = TimeoutException("Element not found")
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+        downloader.wait = mock_wait
+
+        with pytest.raises(Exception, match="Email input field not found"):
+            downloader.login()
+
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_login_password_input_not_found(self, mock_sleep, mock_chrome):
+        """Test login when password input field cannot be found"""
+        from selenium.common.exceptions import NoSuchElementException
+
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+
+        mock_email_input = MagicMock()
+        mock_wait = MagicMock()
+        mock_wait.until.return_value = mock_email_input
+
+        # Mock find_element to raise NoSuchElementException for all password selectors
+        mock_driver.find_element.side_effect = NoSuchElementException("Element not found")
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+        downloader.wait = mock_wait
+
+        with pytest.raises(Exception, match="Password input field not found"):
+            downloader.login()
+
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_login_button_found_with_xpath(self, mock_sleep, mock_chrome):
+        """Test login button found using XPath fallback"""
+        from selenium.common.exceptions import NoSuchElementException
+
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+        mock_driver.current_url = "https://suno.com/songs"
+
+        mock_email_input = MagicMock()
+        mock_password_input = MagicMock()
+        mock_login_button = MagicMock()
+
+        # First calls for password field (succeeds), then NoSuchElementException for CSS selectors, finally XPath succeeds
+        call_count = [0]
+        def find_element_side_effect(by, selector):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return mock_password_input
+            elif 'XPath' in str(by) or 'xpath' in str(by).lower():
+                return mock_login_button
+            else:
+                raise NoSuchElementException("Element not found")
+
+        mock_driver.find_element.side_effect = find_element_side_effect
+
+        mock_wait = MagicMock()
+        mock_wait.until.return_value = mock_email_input
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+        downloader.wait = mock_wait
+
+        result = downloader.login()
+
+        assert result is True
+        mock_login_button.click.assert_called_once()
+
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_login_button_not_found(self, mock_sleep, mock_chrome):
+        """Test login when button cannot be found even with XPath"""
+        from selenium.common.exceptions import NoSuchElementException
+
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+
+        mock_email_input = MagicMock()
+        mock_password_input = MagicMock()
+
+        # First call for password field (succeeds), all other calls fail
+        call_count = [0]
+        def find_element_side_effect(by, selector):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return mock_password_input
+            else:
+                raise NoSuchElementException("Element not found")
+
+        mock_driver.find_element.side_effect = find_element_side_effect
+
+        mock_wait = MagicMock()
+        mock_wait.until.return_value = mock_email_input
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+        downloader.wait = mock_wait
+
+        with pytest.raises(Exception, match="Login button not found"):
+            downloader.login()
+
 
 class TestNavigateToLibrary:
     """Test navigation to songs library"""
@@ -167,6 +282,27 @@ class TestNavigateToLibrary:
         downloader.setup_driver()
         downloader.wait = mock_wait
 
+        downloader.navigate_to_library()
+
+        mock_driver.get.assert_called_with(downloader.LIBRARY_URL)
+
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_navigate_to_library_timeout(self, mock_sleep, mock_chrome):
+        """Test navigation when songs grid times out"""
+        from selenium.common.exceptions import TimeoutException
+
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+
+        mock_wait = MagicMock()
+        mock_wait.until.side_effect = TimeoutException("Grid not found")
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+        downloader.wait = mock_wait
+
+        # Should not raise exception, just log warning
         downloader.navigate_to_library()
 
         mock_driver.get.assert_called_with(downloader.LIBRARY_URL)
@@ -202,6 +338,31 @@ class TestScrollToLoadAllSongs:
 
         # Should have called execute_script multiple times
         assert mock_driver.execute_script.call_count >= 3
+
+    @patch('automated_downloader.webdriver.Chrome')
+    @patch('automated_downloader.time.sleep')
+    def test_scroll_max_attempts(self, mock_sleep, mock_chrome):
+        """Test scrolling hitting max attempts"""
+        mock_driver = MagicMock()
+        mock_chrome.return_value = mock_driver
+
+        # Simulate page that keeps growing (never reaches end)
+        call_count = [0]
+        def get_increasing_height(script):
+            if 'scrollHeight' in script:
+                call_count[0] += 1
+                return 1000 + call_count[0] * 100  # Always increasing
+            return None
+
+        mock_driver.execute_script.side_effect = get_increasing_height
+
+        downloader = SunoDownloader("user@test.com", "password")
+        downloader.setup_driver()
+
+        downloader.scroll_to_load_all_songs()
+
+        # Should have hit max attempts (20)
+        assert call_count[0] >= 20
 
 
 class TestExtractSongsData:

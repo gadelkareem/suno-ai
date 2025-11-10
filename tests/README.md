@@ -4,7 +4,7 @@ Comprehensive test suite for the Suno AI Automated Downloader.
 
 ## Test Coverage
 
-The test suite provides 100% code coverage for `automated_downloader.py`, including:
+The test suite provides 99% code coverage for `automated_downloader.py`, including:
 
 - **Initialization Tests**: Verify proper initialization with default and custom parameters
 - **WebDriver Setup**: Test Chrome WebDriver configuration

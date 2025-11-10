@@ -1,7 +1,7 @@
 # Suno AI Music Tools
 
 [![Tests](https://github.com/gadelkareem/suno-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/gadelkareem/suno-ai/actions/workflows/tests.yml)
-[![Coverage](https://img.shields.io/badge/coverage-84%25-green.svg)](https://github.com/gadelkareem/suno-ai)
+[![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/gadelkareem/suno-ai)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -220,7 +220,7 @@ python3 <script-name>.py
 
 ### Running Tests
 
-The project has comprehensive test coverage (84%+). To run tests:
+The project has comprehensive test coverage (99%). To run tests:
 
 ```bash
 # Install dev dependencies
