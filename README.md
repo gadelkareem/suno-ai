@@ -1,5 +1,10 @@
 # Suno AI Music Tools
 
+[![Tests](https://github.com/gadelkareem/suno-ai/actions/workflows/tests.yml/badge.svg)](https://github.com/gadelkareem/suno-ai/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-84%25-green.svg)](https://github.com/gadelkareem/suno-ai)
+[![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A collection of tools for working with Suno AI generated music files.
 
 ## Features
@@ -210,6 +215,47 @@ pip install -r requirements.txt
 ```bash
 python3 <script-name>.py
 ```
+
+## Development
+
+### Running Tests
+
+The project has comprehensive test coverage (84%+). To run tests:
+
+```bash
+# Install dev dependencies
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Run with coverage report
+pytest --cov=automated_downloader --cov-report=html
+
+# View coverage report
+open htmlcov/index.html
+```
+
+### Code Quality
+
+```bash
+# Lint code
+flake8 automated_downloader.py
+
+# Format code
+black automated_downloader.py
+
+# Sort imports
+isort automated_downloader.py
+```
+
+### Continuous Integration
+
+Tests run automatically on GitHub Actions for:
+- Python versions: 3.8, 3.9, 3.10, 3.11, 3.12
+- Operating systems: Ubuntu, Windows, macOS
+
+See `.github/workflows/tests.yml` for CI configuration.
 
 ## Notes
 
