@@ -37,6 +37,13 @@ A collection of tools for working with Suno AI generated music files.
 
 #### Quick Start
 
+**macOS Users**: Use the convenient setup script - see [README_MAC.md](README_MAC.md) for the complete guide:
+```bash
+./run_mac.sh
+```
+
+**All Platforms**:
+
 1. **Install dependencies** (including Chrome WebDriver):
    ```bash
    pip install -r requirements.txt
