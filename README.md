@@ -4,6 +4,8 @@
 [![Coverage](https://img.shields.io/badge/coverage-99%25-brightgreen.svg)](https://github.com/gadelkareem/suno-ai)
 [![Python](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![GitHub mirror](https://img.shields.io/badge/mirror-GitHub-blue?logo=github)](https://github.com/gadelkareem/suno-ai)
+[![GitLab mirror](https://img.shields.io/badge/mirror-GitLab-orange?logo=gitlab)](https://gitlab.com/gadelkareem/skeleton)
 
 A comprehensive collection of tools for automating downloads and managing Suno AI generated music files. The flagship feature is a fully automated downloader that uses browser automation to handle authentication, filtering, and multi-format downloads.
 
