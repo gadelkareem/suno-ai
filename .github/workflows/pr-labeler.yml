@@ -1,0 +1,123 @@
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Label PR based on changes
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const labels = new Set();
+
+            // Check file changes
+            for (const file of files) {
+              // Test files
+              if (file.filename.startsWith('tests/')) {
+                labels.add('tests');
+              }
+
+              // Documentation
+              if (file.filename.endsWith('.md') || file.filename.startsWith('docs/')) {
+                labels.add('documentation');
+              }
+
+              // CI/CD
+              if (file.filename.startsWith('.github/')) {
+                labels.add('ci/cd');
+              }
+
+              // Main code
+              if (file.filename.endsWith('.py') && !file.filename.startsWith('tests/')) {
+                labels.add('enhancement');
+              }
+
+              // Dependencies
+              if (file.filename.includes('requirements')) {
+                labels.add('dependencies');
+              }
+
+              // Configuration
+              if (file.filename.endsWith('.json') || file.filename.endsWith('.yml') || file.filename.endsWith('.yaml')) {
+                labels.add('configuration');
+              }
+            }
+
+            // Size labels
+            const additions = files.reduce((acc, file) => acc + file.additions, 0);
+            const deletions = files.reduce((acc, file) => acc + file.deletions, 0);
+            const totalChanges = additions + deletions;
+
+            if (totalChanges < 10) {
+              labels.add('size/XS');
+            } else if (totalChanges < 50) {
+              labels.add('size/S');
+            } else if (totalChanges < 200) {
+              labels.add('size/M');
+            } else if (totalChanges < 500) {
+              labels.add('size/L');
+            } else {
+              labels.add('size/XL');
+            }
+
+            // Add labels
+            if (labels.size > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: Array.from(labels)
+              });
+            }
+
+      - name: Add PR size comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            const additions = files.reduce((acc, file) => acc + file.additions, 0);
+            const deletions = files.reduce((acc, file) => acc + file.deletions, 0);
+            const filesChanged = files.length;
+
+            const comment = `## 📏 Pull Request Stats
+
+            - **Files Changed:** ${filesChanged}
+            - **Lines Added:** +${additions}
+            - **Lines Deleted:** -${deletions}
+            - **Total Changes:** ${additions + deletions}
+
+            ---
+
+            Thank you for your contribution! 🎉
+            `;
+
+            // Only post this comment once (when PR is opened)
+            if (context.payload.action === 'opened') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }
